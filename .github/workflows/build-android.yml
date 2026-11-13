@@ -2,6 +2,7 @@ name: Build Android app
 
 on:
   push:
+    paths-ignore: ["art/**", "tools/**"]
   workflow_dispatch:
 
 permissions:

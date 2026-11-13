@@ -1,0 +1,30 @@
+name: Grok art studio
+
+on:
+  push:
+    branches: [main]
+    paths: ["art/requests/**", "art/STYLE.md", "tools/grok_art.py"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: grok-art
+  cancel-in-progress: false
+
+jobs:
+  draw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ask Grok for the requested art
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+        run: python3 tools/grok_art.py
+      - name: Save the results to the repo
+        run: |
+          git config user.name "grok-art-bot"
+          git config user.email "grok-art-bot@users.noreply.github.com"
+          git add art/out
+          git diff --cached --quiet || { git commit -m "Grok art results"; git pull --rebase; git push; }

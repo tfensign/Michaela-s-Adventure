@@ -1,0 +1,8 @@
+{
+  "id": "002-female-hiker-talk",
+  "references": ["art/reference/npc_hiker_talk.jpg", "art/reference/npc_hiker_idle.jpg", "art/reference/michaela_hiking_idle.jpg"],
+  "n": 4,
+  "aspect_ratio": "3:4",
+  "resolution": "1k",
+  "prompt": "Draw the SAME new woman hiker as described below, in a TALKING pose. <IMAGE_0> is the male hiker NPC talking: copy that gesture idea (mouth open mid-sentence, one hand raised in a friendly explaining gesture). <IMAGE_1> is the male hiker standing: copy his exact art style, outline weight, shading, pixel density, height, side-view camera and framing. <IMAGE_2> is the hero Michaela: match rendering quality, but the new woman must NOT look like Michaela.\n\nCharacter (identical in every detail across poses): woman in her 40s, warm smile, short curly dark-brown hair under a forest-green bucket hat, teal fleece jacket over a grey shirt, khaki hiking pants, brown boots, small red daypack, wooden walking stick in her far hand.\n\nPose: full body, side view facing RIGHT, feet flat on the baseline, mouth open as if speaking, near hand raised to chest height palm up.\n\nBackground: perfectly flat solid pure magenta (#FF00FF) filling the whole image. No ground, no shadow, no gradient, no other objects. Nothing cropped."
+}

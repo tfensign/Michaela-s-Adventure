@@ -1,0 +1,8 @@
+{
+  "id": "001-female-hiker-idle",
+  "references": ["art/reference/npc_hiker_idle.jpg", "art/reference/michaela_hiking_idle.jpg"],
+  "n": 4,
+  "aspect_ratio": "3:4",
+  "resolution": "1k",
+  "prompt": "Draw ONE new character: a friendly adult woman hiker (a non-player character the hero meets on the trail). <IMAGE_0> is the existing male hiker NPC: copy his exact art style, outline weight, shading, pixel density, proportions, height, standing pose, side-view camera and framing. <IMAGE_1> is the game's hero, Michaela: match her rendering quality and palette treatment, but the new character must look clearly DIFFERENT from Michaela (she is not Michaela).\n\nCharacter: woman in her 40s, warm smile, short curly dark-brown hair under a forest-green bucket hat, teal fleece jacket over a grey shirt, khaki hiking pants, brown boots, small red daypack, holding a wooden walking stick in her far hand. Medium build.\n\nPose: standing relaxed, full body, side view facing RIGHT (same direction and angle as <IMAGE_0>), feet flat on the same baseline, arms at her sides.\n\nBackground: perfectly flat solid pure magenta (#FF00FF) filling the whole image. No ground, no shadow, no gradient, no glow, no other objects. Character centered with comfortable margin, nothing cropped."
+}
