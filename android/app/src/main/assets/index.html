@@ -9,7 +9,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Michaela">
+<meta name="apple-mobile-web-app-title" content="Michaela's Adventure">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -522,7 +522,7 @@ function renderTut(){ const P=tutPages(), p=P[tutI]; $("tutBody").innerHTML='<h2
   $("tutBack").disabled=tutI===0; $("tutNext").textContent=tutI===P.length-1?"Got it! ✓":"Next ▶"; $("tutDots").innerHTML=P.map((_,i)=>'<i class="'+(i===tutI?"on":"")+'"></i>').join(""); }
 // ---- app-shell update check (Android app only). Game updates download by themselves; this banner only appears
 // when the Android app itself must be reinstalled. The app adds ?shell=N to the URL.
-const GAME_VERSION=4;
+const GAME_VERSION=5;
 window.updStatus=t=>{ try{ $("updStat").textContent=t; }catch(e){} };
 let pendingGameUrl=null; window.gameUpdateReady=u=>{ pendingGameUrl=u; if(titleUp&&!$("tutorial").classList.contains("show")) location.replace(u); else { updStatus("Update ready. It loads when you return to the main menu."); say("\u2728 A game update is ready! It loads next time you open the main menu.",4000); } };
 const GAME_URL="https://tfensign.github.io/Michaela-s-Adventure/";
