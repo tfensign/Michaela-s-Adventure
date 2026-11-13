@@ -31,8 +31,10 @@ import java.net.URL;
  */
 public class MainActivity extends Activity {
     /** Bump this only when the Android wrapper itself changes (the in-game banner then asks for a reinstall). */
-    static final int SHELL_VERSION = 4;
-    static final String RAW = "https://raw.githubusercontent.com/tfensign/Michaela-s-Adventure/main/web/";
+    static final int SHELL_VERSION = 5;
+    static final String RAW = "https://tfensign.github.io/Michaela-s-Adventure/";   // GitHub Pages copy of web/
+    private long lastCheck = 0;
+    private volatile boolean checking = false;
     private WebView web;
     private File gameDir;
 
@@ -87,7 +89,6 @@ public class MainActivity extends Activity {
         gameDir = new File(getFilesDir(), "game");
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
         else web.loadUrl(bestGameUrl());
-        checkForGameUpdate();
     }
 
     // ---------- live game updates ----------
@@ -110,12 +111,20 @@ public class MainActivity extends Activity {
         if (downloadedVersion() > bundledVersion()) return "file://" + new File(gameDir, "index.html").getAbsolutePath() + q;
         return "file:///android_asset/index.html" + q;
     }
+    private void status(String t) {
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript("try{updStatus(" + org.json.JSONObject.quote(t) + ")}catch(e){}", null); });
+    }
     private void checkForGameUpdate() {
+        long now = System.currentTimeMillis();
+        if (checking || now - lastCheck < 5 * 60 * 1000) return;      // every app open, at most every 5 minutes
+        lastCheck = now; checking = true;
         new Thread(() -> {
             try {
                 int current = Math.max(bundledVersion(), downloadedVersion());
-                int remote = parseVersion(httpText(RAW + "version.txt?t=" + System.currentTimeMillis()));
-                if (remote <= current) return;
+                status("Checking for updates...");
+                int remote = parseVersion(httpText(RAW + "version.txt?t=" + now));
+                if (remote <= current) { status(remote > 0 ? "Up to date" : "Couldn't check for updates"); return; }
+                status("Downloading update...");
                 gameDir.mkdirs();
                 File tmp = new File(gameDir, "index.html.part");
                 HttpURLConnection c = open(RAW + "index.html?v=" + remote);
@@ -124,18 +133,18 @@ public class MainActivity extends Activity {
                     byte[] buf = new byte[65536]; int k;
                     while ((k = in.read(buf)) > 0) { out.write(buf, 0, k); n += k; }
                 } finally { c.disconnect(); }
-                if (n < 1_000_000) { tmp.delete(); return; }          // not a real game file
+                if (n < 1_000_000) { tmp.delete(); status("Update download failed. Will retry."); lastCheck = 0; return; }
                 File dst = new File(gameDir, "index.html");
                 dst.delete();
                 if (!tmp.renameTo(dst)) return;
                 try (OutputStream out = new FileOutputStream(new File(gameDir, "version.txt"))) { out.write(String.valueOf(remote).getBytes("UTF-8")); }
                 final String url = bestGameUrl();
                 runOnUiThread(() -> {
-                    if (web == null) return;
-                    // on the title screen: switch right away; mid-game: use it next time
-                    web.evaluateJavascript("(function(){try{ if(titleUp&&!document.getElementById('tutorial').classList.contains('show')){ location.replace('" + url + "'); return 'now'; } say('\u2728 Game updated! The new version loads next time you open the app.',4000); }catch(e){} return 'later'; })()", null);
+                    // switches right away on the main menu, otherwise the next time the menu opens
+                    if (web != null) web.evaluateJavascript("try{gameUpdateReady(" + org.json.JSONObject.quote(url) + ")}catch(e){location.replace(" + org.json.JSONObject.quote(url) + ")}", null);
                 });
-            } catch (Exception ignored) { }
+            } catch (Exception e) { status("Offline. Will check for updates later."); lastCheck = 0; }
+            finally { checking = false; }
         }).start();
     }
     private static HttpURLConnection open(String u) throws java.io.IOException {
@@ -178,6 +187,7 @@ public class MainActivity extends Activity {
         super.onResume();
         if (web != null) {
             web.onResume();
+            web.postDelayed(this::checkForGameUpdate, 1500);
             web.evaluateJavascript("try{ if(audioCtx) audioCtx.resume(); }catch(e){}", null);
         }
     }
