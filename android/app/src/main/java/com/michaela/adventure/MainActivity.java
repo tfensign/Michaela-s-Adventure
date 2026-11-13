@@ -1,6 +1,9 @@
 package com.michaela.adventure;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
+import android.webkit.WebResourceRequest;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
@@ -36,15 +39,40 @@ public class MainActivity extends Activity {
         s.setLoadWithOverviewMode(true);
         s.setUseWideViewPort(true);
         s.setSupportZoom(false);
-        web.setWebViewClient(new WebViewClient());
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebViewClient(new WebViewClient() {
+            // web links (like the update download) open in the phone's browser
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
+                Uri u = req.getUrl();
+                String sc = u.getScheme();
+                if ("http".equals(sc) || "https".equals(sc)) {
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) {}
+                    return true;
+                }
+                return false;
+            }
+        });
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onCreateWindow(WebView view, boolean dialog, boolean userGesture, android.os.Message resultMsg) {
+                WebView.HitTestResult r = view.getHitTestResult();
+                String url = r != null ? r.getExtra() : null;
+                if (url != null) { try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Exception ignored) {} }
+                return false;
+            }
+        });
+        s.setSupportMultipleWindows(true);
         web.setVerticalScrollBarEnabled(false);
         web.setHorizontalScrollBarEnabled(false);
         setContentView(web);
         hideSystemBars();
 
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else web.loadUrl("file:///android_asset/index.html");
+        else {
+            long build = 1;
+            try { build = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception ignored) {}
+            web.loadUrl("file:///android_asset/index.html?build=" + build);
+        }
     }
 
     private void hideSystemBars() {

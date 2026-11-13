@@ -10,8 +10,9 @@ android {
         applicationId "com.michaela.adventure"
         minSdk 24
         targetSdk 34
-        versionCode 1
-        versionName "1.0"
+        // every GitHub build gets a higher number, so updates install over the old app
+        versionCode Integer.parseInt(System.getenv("GITHUB_RUN_NUMBER") ?: "1")
+        versionName "1.0." + (System.getenv("GITHUB_RUN_NUMBER") ?: "1")
     }
 
     signingConfigs {
