@@ -14,10 +14,27 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
-/** Full-screen wrapper that runs the game (assets/index.html) fully offline. */
+/**
+ * Full-screen wrapper for the game. It plays the newest copy of the game it has
+ * (downloaded from the GitHub repo, or the copy built into the app) and quietly
+ * downloads newer versions of the game in the background, so game updates
+ * arrive without reinstalling the app.
+ */
 public class MainActivity extends Activity {
+    /** Bump this only when the Android wrapper itself changes (the in-game banner then asks for a reinstall). */
+    static final int SHELL_VERSION = 4;
+    static final String RAW = "https://raw.githubusercontent.com/tfensign/Michaela-s-Adventure/main/web/";
     private WebView web;
+    private File gameDir;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,12 +84,68 @@ public class MainActivity extends Activity {
         setContentView(web);
         hideSystemBars();
 
+        gameDir = new File(getFilesDir(), "game");
         if (savedInstanceState != null) web.restoreState(savedInstanceState);
-        else {
-            long build = 1;
-            try { build = getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; } catch (Exception ignored) {}
-            web.loadUrl("file:///android_asset/index.html?build=" + build);
-        }
+        else web.loadUrl(bestGameUrl());
+        checkForGameUpdate();
+    }
+
+    // ---------- live game updates ----------
+    private int bundledVersion() {
+        try (InputStream in = getAssets().open("version.txt")) { return parseVersion(readAll(in)); } catch (Exception e) { return 0; }
+    }
+    private int downloadedVersion() {
+        try (InputStream in = new java.io.FileInputStream(new File(gameDir, "version.txt"))) {
+            if (!new File(gameDir, "index.html").exists()) return 0;
+            return parseVersion(readAll(in));
+        } catch (Exception e) { return 0; }
+    }
+    private static int parseVersion(String s) { try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; } }
+    private static String readAll(InputStream in) throws java.io.IOException {
+        StringBuilder sb = new StringBuilder(); BufferedReader r = new BufferedReader(new InputStreamReader(in, "UTF-8")); String line;
+        while ((line = r.readLine()) != null) sb.append(line).append('\n'); return sb.toString();
+    }
+    private String bestGameUrl() {
+        String q = "?shell=" + SHELL_VERSION;
+        if (downloadedVersion() > bundledVersion()) return "file://" + new File(gameDir, "index.html").getAbsolutePath() + q;
+        return "file:///android_asset/index.html" + q;
+    }
+    private void checkForGameUpdate() {
+        new Thread(() -> {
+            try {
+                int current = Math.max(bundledVersion(), downloadedVersion());
+                int remote = parseVersion(httpText(RAW + "version.txt?t=" + System.currentTimeMillis()));
+                if (remote <= current) return;
+                gameDir.mkdirs();
+                File tmp = new File(gameDir, "index.html.part");
+                HttpURLConnection c = open(RAW + "index.html?v=" + remote);
+                long n = 0;
+                try (InputStream in = c.getInputStream(); OutputStream out = new FileOutputStream(tmp)) {
+                    byte[] buf = new byte[65536]; int k;
+                    while ((k = in.read(buf)) > 0) { out.write(buf, 0, k); n += k; }
+                } finally { c.disconnect(); }
+                if (n < 1_000_000) { tmp.delete(); return; }          // not a real game file
+                File dst = new File(gameDir, "index.html");
+                dst.delete();
+                if (!tmp.renameTo(dst)) return;
+                try (OutputStream out = new FileOutputStream(new File(gameDir, "version.txt"))) { out.write(String.valueOf(remote).getBytes("UTF-8")); }
+                final String url = bestGameUrl();
+                runOnUiThread(() -> {
+                    if (web == null) return;
+                    // on the title screen: switch right away; mid-game: use it next time
+                    web.evaluateJavascript("(function(){try{ if(titleUp&&!document.getElementById('tutorial').classList.contains('show')){ location.replace('" + url + "'); return 'now'; } say('\u2728 Game updated! The new version loads next time you open the app.',4000); }catch(e){} return 'later'; })()", null);
+                });
+            } catch (Exception ignored) { }
+        }).start();
+    }
+    private static HttpURLConnection open(String u) throws java.io.IOException {
+        HttpURLConnection c = (HttpURLConnection) new URL(u).openConnection();
+        c.setConnectTimeout(8000); c.setReadTimeout(20000); c.setUseCaches(false); c.setInstanceFollowRedirects(true);
+        return c;
+    }
+    private static String httpText(String u) throws java.io.IOException {
+        HttpURLConnection c = open(u);
+        try (InputStream in = c.getInputStream()) { return readAll(in); } finally { c.disconnect(); }
     }
 
     private void hideSystemBars() {

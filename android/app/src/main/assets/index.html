@@ -106,6 +106,7 @@ canvas { border:3px solid #4fc3f7; border-radius:4px; display:block; box-sizing:
     </div>
     <div id="lvlsel"><div class="lvh">LEVEL SELECT</div><div id="lvlbtns"></div></div>
     <div class="hint">Press Enter to play</div>
+    <div id="verTag" style="margin-top:10px;font:600 11px sans-serif;color:#5d6b80"></div>
   </div>
 </div>
 <div id="tutorial">
@@ -115,7 +116,7 @@ canvas { border:3px solid #4fc3f7; border-radius:4px; display:block; box-sizing:
     <div class="tnav"><button id="tutBack" onclick="tutGo(-1)">◀ Back</button><div id="tutDots"></div><button id="tutNext" class="go" onclick="tutGo(1)">Next ▶</button></div>
   </div>
 </div>
-<div id="updBanner"><span>✨ A new version of Michaela's Adventure is ready!</span><a id="updLink" href="#" target="_blank" rel="noopener">Download update</a><button onclick="document.getElementById('updBanner').classList.remove('show')" aria-label="Dismiss">✕</button></div>
+<div id="updBanner"><span>✨ A new version of the app is ready!</span><a id="updLink" href="#" target="_blank" rel="noopener">Download update</a><button onclick="document.getElementById('updBanner').classList.remove('show')" aria-label="Dismiss">✕</button></div>
 <style>@keyframes tp{0%,100%{opacity:.35}50%{opacity:1}}
 #title { position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center; overflow:auto; text-align:center; padding:16px;
   background:radial-gradient(ellipse at 50% 30%,rgba(255,170,110,.28),transparent 60%),radial-gradient(ellipse at center,rgba(10,20,40,.86),rgba(5,8,16,.96)); }
@@ -491,12 +492,15 @@ function closeTutorial(){ $("tutorial").classList.remove("show"); }
 function tutGo(d){ const P=tutPages(); tutI+=d; if(tutI>=P.length){ closeTutorial(); return; } tutI=Math.max(0,tutI); renderTut(); }
 function renderTut(){ const P=tutPages(), p=P[tutI]; $("tutBody").innerHTML='<h2>'+p[0]+'</h2>'+p[1]; $("tutStep").textContent="HOW TO PLAY · "+(tutI+1)+" of "+P.length;
   $("tutBack").disabled=tutI===0; $("tutNext").textContent=tutI===P.length-1?"Got it! ✓":"Next ▶"; $("tutDots").innerHTML=P.map((_,i)=>'<i class="'+(i===tutI?"on":"")+'"></i>').join(""); }
-// ---- update check (Android app only: the wrapper adds ?build=N to the URL)
-(function(){ try{ const q=new URLSearchParams(location.search), b=parseInt(q.get("build")||"0"); if(!b) return;
-  fetch("https://api.github.com/repos/tfensign/michaela-s-adventure/releases/latest",{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{ if(!j) return;
-    const m=/build-(\d+)/.exec(j.tag_name||""); if(!m||parseInt(m[1])<=b) return;
-    const a=(j.assets||[]).find(x=>/\.apk$/i.test(x.name)); $("updLink").href=a?a.browser_download_url:j.html_url; setTimeout(()=>$("updBanner").classList.add("show"),1500); }).catch(()=>{});
+// ---- app-shell update check (Android app only). Game updates download by themselves; this banner only appears
+// when the Android app itself must be reinstalled. The app adds ?shell=N to the URL.
+const GAME_VERSION=1;
+(function(){ try{ const q=new URLSearchParams(location.search), sh=parseInt(q.get("shell")||"0"); if(!sh) return;
+  fetch("https://raw.githubusercontent.com/tfensign/Michaela-s-Adventure/main/web/shell.json?t="+Date.now(),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(j=>{
+    if(!j||!(j.shell>sh)) return; $("updLink").href="https://github.com/tfensign/Michaela-s-Adventure/releases/latest/download/MichaelasAdventure.apk";
+    setTimeout(()=>$("updBanner").classList.add("show"),1500); }).catch(()=>{});
 }catch(e){} })();
+try{ document.getElementById("verTag").textContent="v1."+GAME_VERSION; }catch(e){}
 function fitCanvas(){ const st=$("stage"); if(!st) return; const w=st.clientWidth-4, h=st.clientHeight-4, k=Math.min(w/960,h/540); canvas.style.width=Math.floor(960*k)+"px"; canvas.style.height=Math.floor(540*k)+"px"; }
 window.addEventListener("resize",fitCanvas); window.addEventListener("orientationchange",()=>setTimeout(fitCanvas,250)); setTimeout(fitCanvas,0);
 function toggleFull(){ const d=document, el=d.documentElement; try{ if(!d.fullscreenElement&&!d.webkitFullscreenElement){ (el.requestFullscreen||el.webkitRequestFullscreen).call(el); try{ screen.orientation&&screen.orientation.lock&&screen.orientation.lock("landscape").catch(()=>{}); }catch(e){} } else (d.exitFullscreen||d.webkitExitFullscreen).call(d); }catch(e){} setTimeout(fitCanvas,300); }

@@ -22,6 +22,9 @@ jobs:
         with:
           gradle-version: "8.7"
 
+      - name: Put the latest game inside the app
+        run: cp web/index.html web/version.txt android/app/src/main/assets/
+
       - name: Build the APK
         working-directory: android
         run: gradle assembleRelease --no-daemon --stacktrace
